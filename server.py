@@ -1,4 +1,5 @@
 from langchain.document_loaders import GoogleDriveLoader
+from langchain.document_loaders import UnstructuredFileIOLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
@@ -31,7 +32,7 @@ def load_llm(folder_id):
     loader = GoogleDriveLoader(
         folder_id=folder_id,
         token_path=TOKEN_PATH,
-        recursive=False,
+        file_loader_cls=UnstructuredFileIOLoader
     )
     data = loader.load()
 
@@ -82,10 +83,10 @@ async def on_start():
     res = await cl.AskUserMessage(content="Please enter a folder link to query", timeout=10).send()
     if res:
         folder_id = get_folder_id_from_link(res['content'])
-        load_llm(folder_id)
         await cl.Message(
             content=f"Picked folder with id {folder_id}",
         ).send()
+        load_llm(folder_id)
 
 
 @cl.on_message
