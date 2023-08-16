@@ -6,21 +6,21 @@ import os
 TOKEN_PATH = os.path.join(os.getcwd(), 'token.json')
 
 
-def get_folder_id_from_link(folder_link):
-    splits = folder_link.split('/')
-    return splits[-1]
-
-
 @cl.action_callback("Connect Drive")
 async def on_action(action):
     connect_gcloud()
     await cl.Message(content="Drive connected").send()
     await action.remove()
+    load_llm()
+    await cl.Message(content="We're ready to serve you. Ask you question",
+                     ).send()
+    print('Gcloud connected. LLM loading done')
 
 
 @cl.on_chat_start
 async def on_start():
-
+    cl.Message(content="Wait until we finish setting up system",
+               ).send()
     if not os.path.exists(TOKEN_PATH):
         actions = [
             cl.Action(name="Connect Drive", value="",
@@ -28,15 +28,11 @@ async def on_start():
         ]
         await cl.Message(content="Click this button to connect drive",
                          actions=actions).send()
-
-    res = await cl.AskUserMessage(content="Please enter a folder link to query",
-                                  timeout=10).send()
-    if res:
-        folder_id = get_folder_id_from_link(res['content'])
-        await cl.Message(
-            content=f"Picked folder with id {folder_id}",
-        ).send()
-        load_llm(folder_id)
+    else:
+        load_llm()
+        await cl.Message(content="We're ready to serve you. Ask you question",
+                         ).send()
+        print('LLM loading done')
 
 
 @cl.on_message

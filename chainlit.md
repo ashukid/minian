@@ -1,8 +1,9 @@
-# Welcome to minian! 🚀🤖
+# Welcome to minian! 
+Minian is your gateway to querying Google Drive.
 
-Hi there, minian is a simple app to query your google drive
+Setting things up for you... Please refrain from submitting queries until prompted. Thank you for your patience!
 
-## Useful Info 🔗
 
-- **Connect Drive:** Click on connect drive button and wait for it to finish before you start querying 📚
-- **Input folder link:** After you connect drive, input a folder you want to query 💬
+
+
+

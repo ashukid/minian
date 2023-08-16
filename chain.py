@@ -8,43 +8,82 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
-
-
 import os
-TOKEN_PATH = os.path.join(os.getcwd(),'token.json')
+import tiktoken
+from utils import _index_to_vectorstore
+from gcloud import list_files
+
+# openai / langchain Const
+RETRIEVER_K_ARG = 3
+OPENA_AI_MODEL = "gpt-4-0314"
+PERSIST_DIRECTORY = "db"
+TOKEN_PATH = os.path.join(os.getcwd(), 'token.json')
 
 
-def load_llm(folder_id):
-    template = """Use the following pieces of context to answer the
-    question at the end. If you don't know the answer, just say that
-    you don't know, don't try to make up an answer.
-    Use three sentences maximum and keep the answer as concise as possible.
-    Always say "thanks for asking!" at the end of the answer.
-    {context}
-    Question: {question}
-    Helpful Answer:"""
-    QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
+def count_tokens(input: str) -> int:
+    token_encoding = tiktoken.get_encoding("cl100k_base")
+    return len(token_encoding.encode(input))
 
+
+def load_documents():
+    _, file_ids = list_files()
     loader = GoogleDriveLoader(
-        folder_id=folder_id,
+        file_ids=file_ids,
         token_path=TOKEN_PATH,
         file_loader_cls=UnstructuredFileIOLoader
     )
-    data = loader.load()
+    return loader.load()
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500,
-                                                   chunk_overlap=0)
-    all_splits = text_splitter.split_documents(data)
-    vectorstore = Chroma.from_documents(documents=all_splits,
-                                        embedding=OpenAIEmbeddings())
+
+def split_documents(docs):
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500,
+                                                   chunk_overlap=200)
+
+    return text_splitter.split_documents(docs)
+
+
+def load_chroma_db(embeddings):
+    return Chroma(embedding_function=embeddings,
+                  persist_directory=PERSIST_DIRECTORY)
+
+
+def create_retriever(db):
+    return db.as_retriever(search_kwargs={"k": RETRIEVER_K_ARG})
+
+
+def create_llm():
+    return ChatOpenAI(temperature=0, model_name=OPENA_AI_MODEL)
+
+
+def create_prompt():
+    template = """Use the context to answer the question.
+    {context}
+    Question: {question}
+    Helpful Answer:"""
+    return PromptTemplate.from_template(template)
+
+
+def create_index(llm, retriever, prompt):
     memory = ConversationBufferMemory(memory_key="chat_history",
                                       return_messages=True)
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
-    retriever = vectorstore.as_retriever()
-    chat = ConversationalRetrievalChain.from_llm(llm,
+    return ConversationalRetrievalChain.from_llm(llm,
                                                  retriever=retriever,
                                                  memory=memory,
                                                  combine_docs_chain_kwargs={
-                                                     "prompt": QA_CHAIN_PROMPT
+                                                     "prompt": prompt
                                                      })
-    cl.user_session.set("llm_chain", chat)
+
+
+def load_llm():
+    embeddings = OpenAIEmbeddings()
+    if not os.path.exists(PERSIST_DIRECTORY):
+        docs = load_documents()
+        texts = split_documents(docs)
+        _index_to_vectorstore(texts, embeddings)
+
+    db = load_chroma_db(embeddings)
+    retriever = create_retriever(db)
+    llm = create_llm()
+    prompt = create_prompt()
+    qa = create_index(llm, retriever, prompt)
+    cl.user_session.set("llm_chain", qa)
