@@ -11,7 +11,7 @@ from langchain.prompts import PromptTemplate
 import os
 import tiktoken
 from utils import _index_to_vectorstore
-from gcloud import list_files
+
 
 # openai / langchain Const
 RETRIEVER_K_ARG = 3
@@ -25,10 +25,15 @@ def count_tokens(input: str) -> int:
     return len(token_encoding.encode(input))
 
 
-def load_documents():
-    _, file_ids = list_files()
+def get_id_from_link(folder_link):
+    splits = folder_link.split('/')
+    return splits[-1]
+
+
+def load_documents(folder_id):
     loader = GoogleDriveLoader(
-        file_ids=file_ids,
+        folder_id=folder_id,
+        recursive=True,
         token_path=TOKEN_PATH,
         file_loader_cls=UnstructuredFileIOLoader
     )
@@ -52,7 +57,8 @@ def create_retriever(db):
 
 
 def create_llm():
-    return ChatOpenAI(temperature=0, model_name=OPENA_AI_MODEL)
+    return ChatOpenAI(temperature=0,
+                      model_name=OPENA_AI_MODEL)
 
 
 def create_prompt():
@@ -74,13 +80,11 @@ def create_index(llm, retriever, prompt):
                                                      })
 
 
-def load_llm():
+def load_llm(folder_id):
     embeddings = OpenAIEmbeddings()
-    if not os.path.exists(PERSIST_DIRECTORY):
-        docs = load_documents()
-        texts = split_documents(docs)
-        _index_to_vectorstore(texts, embeddings)
-
+    docs = load_documents(folder_id)
+    texts = split_documents(docs)
+    _index_to_vectorstore(texts, embeddings)
     db = load_chroma_db(embeddings)
     retriever = create_retriever(db)
     llm = create_llm()
