@@ -1,59 +1,81 @@
-from langchain.document_loaders import GoogleDriveLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.memory import ConversationBufferMemory
-from langchain.chains import ConversationalRetrievalChain
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import PromptTemplate
-import chainlit as cl
+# Import packages
 import os
-from google_auth_oauthlib.flow import InstalledAppFlow
+import chainlit as cl
+from gcloud import connect_gcloud
+from chain import get_id_from_link, load_llm
 
-TOKEN_PATH = os.path.join(os.getcwd(),'token.json')
+TOKEN_PATH = os.path.join(os.getcwd(), 'token.json')
+
+
+@cl.author_rename
+def rename(orig_author: str):
+    rename_dict = {"ConversationalRetrievalChain": "Minian AI"}
+    return rename_dict.get(orig_author, orig_author)
+
+
+@cl.action_callback("Connect Drive")
+async def on_action_drive(action):
+    connect_gcloud()
+    await cl.Message(
+        content="Drive connected successfully").send()
+    await action.remove()
+    await query_input()
+
+
+async def query_input():
+    res = await cl.AskUserMessage(
+        content="Input a folder link to query...",
+        timeout=10).send()
+
+    if res:
+        folder_id = get_id_from_link(res['content'])
+        content = f"Processing folder {folder_id}"
+        msg = cl.Message(content=content)
+        await msg.send()
+        
+        load_llm(folder_id)
+
+        content = "We're ready to serve you. Ask your question"
+        msg.content = content
+        msg.author = 'Chatbot'
+        await msg.update()
 
 
 @cl.on_chat_start
-def load_llm():
-    template = """Use the following pieces of context to answer the question at the end. 
-    If you don't know the answer, just say that you don't know, don't try to make up an answer. 
-    Use three sentences maximum and keep the answer as concise as possible. 
-    Always say "thanks for asking!" at the end of the answer. 
-    {context}
-    Question: {question}
-    Helpful Answer:"""
-    QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
+async def start():
 
-    loader = GoogleDriveLoader(
-        folder_id='15qPzQITIEk6LSDjaf93VHQtAcqS7GTVu',
-        recursive=False
-    )
-    data = loader.load()
-    print(len(data))
+    await cl.Avatar(
+        name = "Chatbot",
+        url = "https://cdn-icons-png.flaticon.com/512/8649/8649595.png"
+    ).send()
+    await cl.Avatar(
+        name = "Error",
+        url = "https://cdn-icons-png.flaticon.com/512/8649/8649595.png"
+    ).send()
+    await cl.Avatar(
+        name = "User",
+        url = "https://media.architecturaldigest.com/photos/5f241de2c850b2a36b415024/master/w_1600%2Cc_limit/Luke-logo.png"
+    ).send()
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500,
-                                                   chunk_overlap=0)
-    all_splits = text_splitter.split_documents(data)
-    vectorstore = Chroma.from_documents(documents=all_splits,
-                                        embedding=OpenAIEmbeddings())
-    memory = ConversationBufferMemory(memory_key="chat_history",
-                                      return_messages=True)
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
-    retriever = vectorstore.as_retriever()
-    chat = ConversationalRetrievalChain.from_llm(llm,
-                                                 retriever=retriever,
-                                                 memory=memory,
-                                                 combine_docs_chain_kwargs={
-                                                     "prompt": QA_CHAIN_PROMPT
-                                                     })
-    cl.user_session.set("llm_chain", chat)
+    if not os.path.exists(TOKEN_PATH):
+        actions = [
+            cl.Action(name="Connect Drive", value="",
+                      description="Connect Drive")
+        ]
+        await cl.Message(content="Click this button to connect drive",
+                         actions=actions).send()
+    
+    else:
+        await query_input()
 
 
 @cl.on_message
-async def main(question, chat):
+async def main(question):
 
     llm_chain = cl.user_session.get("llm_chain")
-    res = await llm_chain.acall({"question": question},
-                                callbacks=[cl.AsyncLangchainCallbackHandler()])
+    if llm_chain:
+        res = await llm_chain.acall(
+            {"question": question},
+            callbacks=[cl.AsyncLangchainCallbackHandler()])
 
-    await cl.Message(content=res["answer"]).send()
+        await cl.Message(content=res["answer"]).send()
