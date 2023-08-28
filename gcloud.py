@@ -4,15 +4,18 @@ from google.oauth2.credentials import Credentials
 import os
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+REDIRECT_URI = os.environ.get('REDIRECT_URI')
 
 
 def connect_gcloud():
     # connect
     flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-    creds = flow.run_local_server(port=0)
-    with open('token.json', 'w') as token:
-        token.write(creds.to_json())
+                'credentials.json',
+                SCOPES,
+                redirect_uri=REDIRECT_URI)
+    url, _ = flow.authorization_url(access_type='offline')
+    return url
+
 
 
 def list_files():

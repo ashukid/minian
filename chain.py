@@ -18,7 +18,6 @@ RETRIEVER_K_ARG = 3
 OPENA_AI_MODEL = "gpt-4-0314"
 PERSIST_DIRECTORY = "db"
 TOKEN_PATH = os.path.join(os.getcwd(), 'token.json')
-CREDS_PATH = os.path.join(os.getcwd(), 'credentials.json')
 
 
 def count_tokens(input: str) -> int:
@@ -36,7 +35,6 @@ def load_documents(folder_id):
         folder_id=folder_id,
         recursive=True,
         token_path=TOKEN_PATH,
-        credentials_path=CREDS_PATH,
         file_loader_cls=UnstructuredFileIOLoader
     )
     return loader.load()
