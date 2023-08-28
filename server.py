@@ -11,8 +11,6 @@ app = FastAPI()
 
 @app.get("/save_creds/")
 async def process_code(code: str):
-    print(code)
-    print(REDIRECT_URI)
     flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json',
                 SCOPES,

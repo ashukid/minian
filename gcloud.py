@@ -17,7 +17,6 @@ def connect_gcloud():
     return url
 
 
-
 def list_files():
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
