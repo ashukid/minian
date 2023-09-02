@@ -1,5 +1,6 @@
 import time
 import tiktoken
+import os
 from langchain.vectorstores import Chroma
 
 PERSIST_DIRECTORY = "db"
@@ -30,7 +31,7 @@ def _split_docs_by_token_count(docs, max_tokens):
 
 
 # TODO: This method should be called within the base class
-def _index_to_vectorstore(docs, embeddings):
+def _index_to_vectorstore(docs, embeddings, username):
 
     MAX_TOKENS_PER_MINUTE = 250000
     docs_list = _split_docs_by_token_count(
@@ -41,4 +42,4 @@ def _index_to_vectorstore(docs, embeddings):
             time.sleep(60)
         Chroma.from_documents(doc_set,
                               embeddings,
-                              persist_directory=PERSIST_DIRECTORY)
+                              persist_directory=os.path.join(username, 'db'))

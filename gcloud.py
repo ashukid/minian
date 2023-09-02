@@ -7,13 +7,14 @@ SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 REDIRECT_URI = os.environ.get('REDIRECT_URI')
 
 
-def connect_gcloud():
+def connect_gcloud(username):
     # connect
     flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json',
                 SCOPES,
                 redirect_uri=REDIRECT_URI)
-    url, _ = flow.authorization_url(access_type='offline')
+    url, _ = flow.authorization_url(access_type='offline',
+                                    state=username)
     return url
 
 

@@ -10,15 +10,15 @@ REDIRECT_URI = os.environ.get('REDIRECT_URI')
 app = FastAPI()
 
 @app.get("/save_creds/")
-async def process_code(code: str):
+async def process_code(code: str, state: str):
     flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json',
                 SCOPES,
                 redirect_uri=REDIRECT_URI)
     flow.fetch_token(code=code)
     creds = flow.credentials
-    with open('token.json', 'w') as token:
+    os.makedirs(state, exist_ok=True)
+    with open(os.path.join(state, 'token.json'), 'w') as token:
         token.write(creds.to_json())
 
     return "Request completed. You can close this window."
-

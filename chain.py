@@ -16,8 +16,6 @@ from utils import _index_to_vectorstore
 # openai / langchain Const
 RETRIEVER_K_ARG = 3
 OPENA_AI_MODEL = "gpt-4-0314"
-PERSIST_DIRECTORY = "db"
-TOKEN_PATH = os.path.join(os.getcwd(), 'token.json')
 
 
 def count_tokens(input: str) -> int:
@@ -30,7 +28,8 @@ def get_id_from_link(folder_link):
     return splits[-1]
 
 
-def load_documents(folder_id):
+def load_documents(folder_id, username):
+    TOKEN_PATH = os.path.join(username, 'token.json')
     loader = GoogleDriveLoader(
         folder_id=folder_id,
         recursive=True,
@@ -47,9 +46,9 @@ def split_documents(docs):
     return text_splitter.split_documents(docs)
 
 
-def load_chroma_db(embeddings):
+def load_chroma_db(embeddings, username):
     return Chroma(embedding_function=embeddings,
-                  persist_directory=PERSIST_DIRECTORY)
+                  persist_directory=os.path.join(username, 'db'))
 
 
 def create_retriever(db):
@@ -80,12 +79,12 @@ def create_index(llm, retriever, prompt):
                                                      })
 
 
-def load_llm(folder_id):
+def load_llm(folder_id, username):
     embeddings = OpenAIEmbeddings()
-    docs = load_documents(folder_id)
+    docs = load_documents(folder_id, username)
     texts = split_documents(docs)
-    _index_to_vectorstore(texts, embeddings)
-    db = load_chroma_db(embeddings)
+    _index_to_vectorstore(texts, embeddings, username)
+    db = load_chroma_db(embeddings, username)
     retriever = create_retriever(db)
     llm = create_llm()
     prompt = create_prompt()
