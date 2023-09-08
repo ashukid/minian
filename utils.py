@@ -2,6 +2,7 @@ import time
 import tiktoken
 import os
 from langchain.vectorstores import Chroma
+from chainlit import make_async
 
 PERSIST_DIRECTORY = "db"
 
@@ -31,15 +32,14 @@ def _split_docs_by_token_count(docs, max_tokens):
 
 
 # TODO: This method should be called within the base class
-def _index_to_vectorstore(docs, embeddings, username):
+async def _index_to_vectorstore(docs, embeddings, username):
 
     MAX_TOKENS_PER_MINUTE = 250000
-    docs_list = _split_docs_by_token_count(
-        docs, MAX_TOKENS_PER_MINUTE)
+    docs_list = await make_async(_split_docs_by_token_count)(docs, MAX_TOKENS_PER_MINUTE)
     for i, doc_set in enumerate(docs_list):
         print(f'Processing document - {i}')
         if i != 0:
             time.sleep(60)
-        Chroma.from_documents(doc_set,
-                              embeddings,
-                              persist_directory=os.path.join(username, 'db'))
+        await make_async(Chroma.from_documents)(doc_set,
+                                                embeddings,
+                                                persist_directory=os.path.join(username, 'db'))

@@ -11,7 +11,7 @@ from langchain.prompts import PromptTemplate
 import os
 import tiktoken
 from utils import _index_to_vectorstore
-
+from chainlit import make_async
 
 # openai / langchain Const
 RETRIEVER_K_ARG = 3
@@ -79,14 +79,14 @@ def create_index(llm, retriever, prompt):
                                                      })
 
 
-def load_llm(folder_id, username):
+async def load_llm(folder_id, username):
     embeddings = OpenAIEmbeddings()
-    docs = load_documents(folder_id, username)
-    texts = split_documents(docs)
-    _index_to_vectorstore(texts, embeddings, username)
-    db = load_chroma_db(embeddings, username)
-    retriever = create_retriever(db)
-    llm = create_llm()
-    prompt = create_prompt()
-    qa = create_index(llm, retriever, prompt)
+    docs = await make_async(load_documents)(folder_id, username)
+    texts = await make_async(split_documents)(docs)
+    await _index_to_vectorstore(texts, embeddings, username)
+    db = await make_async(load_chroma_db)(embeddings, username)
+    retriever = await make_async(create_retriever)(db)
+    llm = await make_async(create_llm)()
+    prompt = await make_async(create_prompt)()
+    qa = await make_async(create_index)(llm, retriever, prompt)
     cl.user_session.set("llm_chain", qa)
