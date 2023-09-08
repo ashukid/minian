@@ -5,11 +5,15 @@ from chainlit import make_async
 from gcloud import connect_gcloud
 from chain import get_id_from_link, load_llm
 
-# Define a constant for the bot's avatar URL
-BOT_AVATAR_URL = "https://cdn-icons-png.flaticon.com/512/8649/8649595.png"
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 # Define a constant for the user's avatar URL
 USER_AVATAR_URL = "https://media.architecturaldigest.com/photos/5f241de2c850b2a36b415024/master/w_1600%2Cc_limit/Luke-logo.png"
+
+# Define a constant for the bot's avatar URL
+BOT_AVATAR_URL = "https://cdn-icons-png.flaticon.com/512/8649/8649595.png"
 
 
 @cl.author_rename

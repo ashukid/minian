@@ -5,3 +5,5 @@ credentials.json
 token.json
 __pycache__/
 db/
+.ngrok2
+service_credentials.json
